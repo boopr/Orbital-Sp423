@@ -7,6 +7,9 @@ The code to print table come from https://github.com/CodeForeverAndEver/TableIt
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
+import cartopy
+from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
 
 def find_largest_element(rows, cols, length_array, matrix, format):
@@ -298,8 +301,10 @@ if __name__ == '__main__':
     v = -w
     tp = -compute_t(v_c, v, e, n)
     print(f"Temps de passage au périastre : {tp:{p}} secondes")
-    print("Entrez les anomalies vraies en degré (-60 -30 0 +30 +60 +90) :")
-    vs = np.asarray([float(x) for x in input().strip().split(" ")])
+    # print("Entrez les anomalies vraies en degré (-60 -30 0 +30 +60 +90) :")
+    # vs = np.asarray([float(x) for x in input().strip().split(" ")])
+    vs = np.array([-180, -165, -150, -135, -120, -105, -90, -75, -60, -45, -30, -15, 0, 15, 30, 45, 60, 75, 90, 105,
+                   120, 135, 150, 165, 180])
     ts = np.asarray([compute_t(v_c, vx, e, n) + tp for vx in vs])
 
     las = np.rad2deg(np.arcsin(np.sin(np.deg2rad(i)) * np.sin(np.deg2rad(w + vs))))
@@ -352,15 +357,30 @@ if __name__ == '__main__':
                     last_is_out_of_bound = False
         trace.append((las_group, lss_group))
 
-        plt.figure()
+        plt.figure(figsize=(16, 9), dpi=240)
+        ax = plt.axes(projection=cartopy.crs.PlateCarree())
+        ax.add_feature(cartopy.feature.LAND)
+        ax.add_feature(cartopy.feature.COASTLINE)
+        ax.add_feature(cartopy.feature.BORDERS, linestyle=':')
+        ax.set_global()
+        gl = ax.gridlines(crs=cartopy.crs.PlateCarree(), draw_labels=True,
+                          linewidth=2, color='gray', alpha=0.5, linestyle='--')
+        gl.xlabels_top = False
+        gl.ylabels_left = False
+        gl.xlines = False
+        gl.xlocator = mticker.FixedLocator([-180, -45, 0, 45, 180])
+        gl.xformatter = LONGITUDE_FORMATTER
+        gl.yformatter = LATITUDE_FORMATTER
+        gl.xlabel_style = {'size': 15}
+        gl.xlabel_style = {'size': 15}
         for i, (las_group, lss_group) in enumerate(trace):
             plt.plot(lss_group, las_group, marker='o', label=f'Tracé n°{i+1}')
         plt.title('Trace du corps')
         plt.plot(lss_norm[0], las[0], ms=10, marker='x', linestyle='None', label='Départ')
         plt.plot(lss_norm[-1], las[-1], ms=10, marker='x', linestyle='None', label='Arrivé')
-        plt.grid()
-        plt.xlabel('Lo[deg]')
-        plt.ylabel('la[deg]')
+        # plt.grid()
+        # plt.xlabel('Lo[deg]')
+        # plt.ylabel('la[deg]')
         plt.axis((-180, 180, -90, 90))
         plt.legend()
         plt.show()
