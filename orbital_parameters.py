@@ -7,9 +7,6 @@ The code to print table come from https://github.com/CodeForeverAndEver/TableIt
 
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker
-import cartopy
-from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
 
 def find_largest_element(rows, cols, length_array, matrix, format):
@@ -146,95 +143,57 @@ def compute_t_param(v_deg, excentricity):
 
 
 def determine_correction_for_t(v_c, v):
-    if -4 * np.pi + np.deg2rad(v_c) < np.deg2rad(v) < -2 * np.pi - np.deg2rad(v_c):
-        correction = -3 * np.pi
-        minus = True
-    elif -2 * np.pi - np.deg2rad(v_c) < np.deg2rad(v) < -2 * np.pi + np.deg2rad(v_c):
-        correction = -2 * np.pi
-        minus = False
-    elif -2 * np.pi + np.deg2rad(v_c) < np.deg2rad(v) < -np.deg2rad(v_c):
-        correction = -np.pi
-        minus = True
-    elif -np.deg2rad(v_c) <= np.deg2rad(v) <= np.deg2rad(v_c):
+    if -v_c <= v <= v_c:
         correction = 0
-        minus = False
-    elif np.deg2rad(v_c) < np.deg2rad(v) < 2 * np.pi - np.deg2rad(v_c):
-        correction = np.pi
-        minus = True
-    elif 2 * np.pi - np.deg2rad(v_c) < np.deg2rad(v) < 2 * np.pi + np.deg2rad(v_c):
-        correction = 2 * np.pi
-        minus = False
-    elif 2 * np.pi + np.deg2rad(v_c) < np.deg2rad(v) < 4 * np.pi + np.deg2rad(v_c):
-        correction = 3 * np.pi
-        minus = True
+        factor = 1
+    elif v < -v_c:
+        k = 0
+        while v <= -(2 * np.pi) * ((k + 1) // 2) + (-1) ** (k + 1) * v_c:
+            k += 1
+            correction = -k * np.pi
+            factor = (-1) ** k
     else:
-        print(f"[ERREUR] v, hors limite. Il va falloir le faire à la main :(. On a v = {v} et v_c = {v_c}")
-        factor = int(input("Facteur devant PI (-2*PI, donnez -2) : "))
-        sign = input("Signe après x*PI [-/+] : ")
-        if sign == '-':
-            minus = True
-        else:
-            minus = False
-        correction = factor * np.pi
+        k = 0
+        while v >= (2 * np.pi) * ((k + 1) // 2) + (-1) ** k * v_c:
+            k += 1
+            correction = k * np.pi
+            factor = (-1) ** k
 
-    return correction, minus
+    return correction, factor
 
 
 def compute_t(v_c_deg, v_deg, excentricity, n):
     param = compute_t_param(v_deg, excentricity)
-    correction, minus = determine_correction_for_t(v_c_deg, v_deg)
-    if minus:
-        return (1 / n) * (correction - np.arcsin(param) - excentricity * param)
-    else:
-        return (1 / n) * (correction + np.arcsin(param) - excentricity * param)
+    correction, factor = determine_correction_for_t(np.deg2rad(v_c_deg), np.deg2rad(v_deg))
+    return (1 / n) * (correction + factor * np.arcsin(param) - excentricity * param)
 
 
-def determine_correction_for_lo(w_deg, v_deg, inclinaison):
-    if -w_deg-630 < v_deg <= -w_deg-450:
-        correction = -540
-        minus = True
-    elif -w_deg-450 < v_deg <= -w_deg-270:
-        correction = -360
-        minus = False
-    elif -w_deg-270 < v_deg <= -w_deg-90:
-        correction = -180
-        minus = True
-    elif -w_deg-90 < v_deg <= -w_deg+90:
+def determine_correction_for_lo(w, v, inclinaison):
+    if -w - np.pi / 2 <= v <= -w + np.pi / 2:
         correction = 0
-        minus = False
-    elif -w_deg+90 < v_deg <= -w_deg+270:
-        correction = 180
-        minus = True
-    elif -w_deg+270 < v_deg <= -w_deg+450:
-        correction = 360
-        minus = False
-    elif -w_deg+450 < v_deg <= -w_deg+630:
-        correction = 540
-        minus = True
+        factor = 1
+    elif v < -w - np.pi / 2:
+        k = 0
+        while v <= -w - np.pi * (k + 0.5):
+            k += 1
+            correction = -k * np.pi
+            factor = (-1) ** k
     else:
-        print(f"[ERREUR] v, hors limite. Il va falloir le faire à la main :(. On a v = {v_deg} et w = {w_deg}")
-        factor = int(input("Facteur : "))
-        sign = input("Signe après le facteur [-/+] : ")
-        if sign == '-':
-            minus = True
-        else:
-            minus = False
-        correction = factor
+        k = 0
+        while v >= -w + np.pi * (k + 0.5):
+            k += 1
+            correction = k * np.pi
+            factor = (-1) ** k
 
-    if inclinaison > 90:
+    if inclinaison > np.pi / 2:
         correction *= -1
 
-    return correction, minus
+    return correction, factor
 
 
 def compute_lo(w_deg, v_deg, la, inclinaison):
-    correction, minus = determine_correction_for_lo(w_deg, v_deg, inclinaison)
-
-    if minus:
-        return correction - np.rad2deg(np.arcsin(np.tan(np.deg2rad(la)) / np.tan(np.deg2rad(inclinaison))))
-    else:
-        return correction + np.rad2deg(np.arcsin(np.tan(np.deg2rad(la)) / np.tan(np.deg2rad(inclinaison))))
-
+    correction, factor = determine_correction_for_lo(np.deg2rad(w_deg), np.deg2rad(v_deg), np.deg2rad(inclinaison))
+    return np.rad2deg(correction) + factor * np.rad2deg(np.arcsin(np.tan(np.deg2rad(la)) / np.tan(np.deg2rad(inclinaison))))
 
 if __name__ == '__main__':
     p = '.' + str(int(input('Nombre de chiffre après la virgule : '))) + 'f'
@@ -244,12 +203,12 @@ if __name__ == '__main__':
     w = float(input('[Argument du périgé (deg)] w = '))
     L_omega = float(input('[Longitude du noeud ascendant (deg)] L_omega = '))
 
-    #p = '.3f'
-    #a = 40708
-    #e = 0.8320
-    #i = 61
-    #w = 270
-    #L_omega = 120
+    # p = '.3f'
+    # a = float(40708)
+    # e = float(0.8320)
+    # i = float(61)
+    # w = float(270)
+    # L_omega = float(120)
 
     r_T = 6378  # km : Rayon de la Terre
     mu_T = 398_600  # km^3/s^2 : Paramètre gravitationnel réduit
@@ -302,9 +261,8 @@ if __name__ == '__main__':
     tp = -compute_t(v_c, v, e, n)
     print(f"Temps de passage au périastre : {tp:{p}} secondes")
     # print("Entrez les anomalies vraies en degré (-60 -30 0 +30 +60 +90) :")
-    # vs = np.asarray([float(x) for x in input().strip().split(" ")])
-    vs = np.array([-180, -165, -150, -135, -120, -105, -90, -75, -60, -45, -30, -15, 0, 15, 30, 45, 60, 75, 90, 105,
-                   120, 135, 150, 165, 180])
+    vs = np.asarray([float(x) for x in input().strip().split(" ")])
+    # vs = np.arange(-60, 340, 30)
     ts = np.asarray([compute_t(v_c, vx, e, n) + tp for vx in vs])
 
     las = np.rad2deg(np.arcsin(np.sin(np.deg2rad(i)) * np.sin(np.deg2rad(w + vs))))
@@ -357,30 +315,15 @@ if __name__ == '__main__':
                     last_is_out_of_bound = False
         trace.append((las_group, lss_group))
 
-        plt.figure(figsize=(16, 9), dpi=240)
-        ax = plt.axes(projection=cartopy.crs.PlateCarree())
-        ax.add_feature(cartopy.feature.LAND)
-        ax.add_feature(cartopy.feature.COASTLINE)
-        ax.add_feature(cartopy.feature.BORDERS, linestyle=':')
-        ax.set_global()
-        gl = ax.gridlines(crs=cartopy.crs.PlateCarree(), draw_labels=True,
-                          linewidth=2, color='gray', alpha=0.5, linestyle='--')
-        gl.xlabels_top = False
-        gl.ylabels_left = False
-        gl.xlines = False
-        gl.xlocator = mticker.FixedLocator([-180, -45, 0, 45, 180])
-        gl.xformatter = LONGITUDE_FORMATTER
-        gl.yformatter = LATITUDE_FORMATTER
-        gl.xlabel_style = {'size': 15}
-        gl.xlabel_style = {'size': 15}
+        plt.figure()
         for i, (las_group, lss_group) in enumerate(trace):
-            plt.plot(lss_group, las_group, marker='o', label=f'Tracé n°{i+1}')
+            plt.plot(lss_group, las_group, marker='o', label=f'Tracé n°{i + 1}')
         plt.title('Trace du corps')
         plt.plot(lss_norm[0], las[0], ms=10, marker='x', linestyle='None', label='Départ')
         plt.plot(lss_norm[-1], las[-1], ms=10, marker='x', linestyle='None', label='Arrivé')
-        # plt.grid()
-        # plt.xlabel('Lo[deg]')
-        # plt.ylabel('la[deg]')
+        plt.grid()
+        plt.xlabel('Lo[deg]')
+        plt.ylabel('la[deg]')
         plt.axis((-180, 180, -90, 90))
         plt.legend()
         plt.show()
