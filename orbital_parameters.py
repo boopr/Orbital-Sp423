@@ -211,22 +211,13 @@ def compute_ls_norm(lss):
         return lss
 
 if __name__ == '__main__':
-    """
     p = '.' + str(int(input('Nombre de chiffre après la virgule : '))) + 'f'
     a = float(input('[Demi-grand axe (km)] a = '))
     e = float(input('[Excentricité] e = '))
     i = float(input('[Inclinaison (deg)] i = '))
     w = float(input('[Argument du périgé (deg)] w = '))
     L_omega = float(input('[Longitude du noeud ascendant (deg)] L_omega = '))
-    """
-
-    p = '.3f'
-    a = float(87734)
-    e = float(0.7990)
-    i = float(70.20)
-    w = float(302)
-    L_omega = float(-51.6)
-
+    
     r_T = 6378  # km : Rayon de la Terre
     mu_T = 398_600  # km^3/s^2 : Paramètre gravitationnel réduit
     l_a = 0 # deg : Latitude du noeud ascendant
@@ -279,8 +270,7 @@ if __name__ == '__main__':
     tp = -compute_t(v_c, v, e, n)
     print(f"Temps de passage au périastre : {tp:{p}} secondes")
     print("Entrez les anomalies vraies en degré (-60 -30 0 +30 +60 +90) :")
-    #vs = np.asarray([float(x) for x in input().strip().split(" ")])
-    vs = np.asarray([-150,-130,-110,-90,-50,-30,0,30,50,90,110,130,150])
+    vs = np.asarray([float(x) for x in input().strip().split(" ")])
     ts = np.asarray([compute_t(v_c, vx, e, n) + tp for vx in vs])
 
     las = np.rad2deg(np.arcsin(np.sin(np.deg2rad(i)) * np.sin(np.deg2rad(w + vs))))
