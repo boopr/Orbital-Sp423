@@ -148,16 +148,16 @@ def determine_correction_for_t(v_c, v):
         factor = 1
     elif v < -v_c:
         k = 0
-        while v <= -(2 * np.pi) * ((k + 1) // 2) + (-1) ** (k + 1) * v_c:
+        while v <= -(2*np.pi) * ((k + 1) // 2) + (-1)**(k + 1) * v_c:
             k += 1
-            correction = -k * np.pi
+            correction = -k*np.pi
             factor = (-1) ** k
     else:
         k = 0
-        while v >= (2 * np.pi) * ((k + 1) // 2) + (-1) ** k * v_c:
+        while v >= (2*np.pi) * ((k + 1) // 2)+(-1)**k * v_c:
             k += 1
             correction = k * np.pi
-            factor = (-1) ** k
+            factor = (-1)**k
 
     return correction, factor
 
@@ -176,13 +176,13 @@ def determine_correction_for_lo(w, v, inclinaison):
         k = 0
         while v <= -w - np.pi * (k + 0.5):
             k += 1
-            correction = -k * np.pi
+            correction = -k *np.pi
             factor = (-1) ** k
     else:
         k = 0
         while v >= -w + np.pi * (k + 0.5):
             k += 1
-            correction = k * np.pi
+            correction = k *np.pi
             factor = (-1) ** k
 
     if inclinaison > np.pi / 2:
@@ -195,20 +195,37 @@ def compute_lo(w_deg, v_deg, la, inclinaison):
     correction, factor = determine_correction_for_lo(np.deg2rad(w_deg), np.deg2rad(v_deg), np.deg2rad(inclinaison))
     return np.rad2deg(correction) + factor * np.rad2deg(np.arcsin(np.tan(np.deg2rad(la)) / np.tan(np.deg2rad(inclinaison))))
 
+
+def compute_ls_norm(lss):
+    if lss > 180:
+        k = 0
+        while lss > (2*k + 1) * 180:
+            k += 1
+        return lss - k*360
+    elif lss < -180:
+        k = 0
+        while lss<-(2*k + 1) * 180:
+            k+=1
+        return lss + k*360
+    else:
+        return lss
+
 if __name__ == '__main__':
+    """
     p = '.' + str(int(input('Nombre de chiffre après la virgule : '))) + 'f'
     a = float(input('[Demi-grand axe (km)] a = '))
     e = float(input('[Excentricité] e = '))
     i = float(input('[Inclinaison (deg)] i = '))
     w = float(input('[Argument du périgé (deg)] w = '))
     L_omega = float(input('[Longitude du noeud ascendant (deg)] L_omega = '))
+    """
 
-    # p = '.3f'
-    # a = float(40708)
-    # e = float(0.8320)
-    # i = float(61)
-    # w = float(270)
-    # L_omega = float(120)
+    p = '.3f'
+    a = float(87734)
+    e = float(0.7990)
+    i = float(70.20)
+    w = float(302)
+    L_omega = float(-51.6)
 
     r_T = 6378  # km : Rayon de la Terre
     mu_T = 398_600  # km^3/s^2 : Paramètre gravitationnel réduit
@@ -237,6 +254,7 @@ if __name__ == '__main__':
     d, h, m, s = seconds2dhms(T)
     print(f" - Temps d'une orbite : {d} jours {h} heures {m} minutes et {s:{p}} secondes")
     print(f" - Moyen mouvement : n = {n:{p[:-1]}} rad/sec")
+    print(f" - Moyen mouvement : n = {n * (3600 * 24):{p[:-1]}} rad/day")
     print(f" - Nombre d'orbites par jour : {86400 / T:{p}}")
     print("Vitesses")
     print(f" - Vitesse à l'apogé: VA = {V_A:{p}} km/s")
@@ -260,9 +278,9 @@ if __name__ == '__main__':
     v = -w
     tp = -compute_t(v_c, v, e, n)
     print(f"Temps de passage au périastre : {tp:{p}} secondes")
-    # print("Entrez les anomalies vraies en degré (-60 -30 0 +30 +60 +90) :")
-    vs = np.asarray([float(x) for x in input().strip().split(" ")])
-    # vs = np.arange(-60, 340, 30)
+    print("Entrez les anomalies vraies en degré (-60 -30 0 +30 +60 +90) :")
+    #vs = np.asarray([float(x) for x in input().strip().split(" ")])
+    vs = np.asarray([-150,-130,-110,-90,-50,-30,0,30,50,90,110,130,150])
     ts = np.asarray([compute_t(v_c, vx, e, n) + tp for vx in vs])
 
     las = np.rad2deg(np.arcsin(np.sin(np.deg2rad(i)) * np.sin(np.deg2rad(w + vs))))
@@ -271,13 +289,7 @@ if __name__ == '__main__':
     alpha_dot = 360 / 86164
 
     lss = L_omega + los - alpha_dot * ts
-    lss_norm = []
-    for ls in lss:
-        if ls > 180:
-            ls -= 360
-        elif ls < -180:
-            ls += 360
-        lss_norm.append(ls)
+    lss_norm = [compute_ls_norm(ls) for ls in lss]
 
     to_print = list(zip(vs, ts, las, los, lss, lss_norm))
     to_print.insert(0, ('v[deg]', 't[sec]', 'la[deg]', 'Lo[deg]', 'Ls[deg]', 'Ls[deg] +- 180'))
@@ -317,13 +329,14 @@ if __name__ == '__main__':
 
         plt.figure()
         for i, (las_group, lss_group) in enumerate(trace):
-            plt.plot(lss_group, las_group, marker='o', label=f'Tracé n°{i + 1}')
+            plt.plot(lss_group, las_group, marker='o', label=f'Tracé n°{i + 1}', zorder=1)
         plt.title('Trace du corps')
-        plt.plot(lss_norm[0], las[0], ms=10, marker='x', linestyle='None', label='Départ')
-        plt.plot(lss_norm[-1], las[-1], ms=10, marker='x', linestyle='None', label='Arrivé')
+        plt.plot(lss_norm[0], las[0], ms=10, marker='x', linestyle='None', label='Départ', zorder=2)
+        plt.plot(lss_norm[-1], las[-1], ms=10, marker='x', linestyle='None', label='Arrivé', zorder=2)
         plt.grid()
         plt.xlabel('Lo[deg]')
         plt.ylabel('la[deg]')
         plt.axis((-180, 180, -90, 90))
         plt.legend()
+
         plt.show()
